@@ -3,7 +3,7 @@ import streamlit as st
 import base64
 import plotly.express as px
 import plotly.graph_objects as go
-
+from io import BytesIO
 
 # Title
 st.set_page_config(page_title="Readmission Analytics", layout="wide")
@@ -186,8 +186,17 @@ if uploaded_file is not None:
         y_pred = pd.DataFrame(y_pred)
         y_pred.rename(columns={0: 'READMITTED'}, inplace=True)
         a = pd.concat([upd_df['PATIENT_NBR'], y_pred], axis=1)
-        local_path = r'C:\Users\SriramvelM\Desktop\sklearn_vs\predictions.csv'
-        a.to_csv(local_path, index=False)
+        # Save the concatenated DataFrame to BytesIO
+        csv_file = BytesIO()
+        a.to_csv(csv_file, index=False)
+
+        # Create a download link
+        st.download_button(
+        label='Download Predictions CSV',
+        data=csv_file.getvalue(),
+        file_name='predictions.csv',
+        key='download_button')
+
         st.write('The Predictions are downloaded')
         # st.write("Predictions are completed")
         # if st.button('Download as CSV'):
