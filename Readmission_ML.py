@@ -218,7 +218,7 @@ if uploaded_file is not None:
 # print("Classification Report:")
 # print(classification_report(y_test, y_pred))
 
-st.markdown("Readmission Analysis", unsafe_allow_html=True)
+st.header("Readmission Analysis", unsafe_allow_html=True)
 
 # Page Layout
 c1, c2 = st.columns(2)
