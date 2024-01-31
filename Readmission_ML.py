@@ -9,7 +9,8 @@ from io import BytesIO
 st.set_page_config(page_title="Readmission Analytics", layout="wide")
 
 # Heading
-st.header('Prediction on Hospital Readmission')
+# st.header('Prediction on Hospital Readmission')
+st.markdown("<h1 style='color: black;'>Prediction on Hospital Readmission</h1>", unsafe_allow_html=True)
 
 # Define background image with base64 format
 # def get_img(file):
