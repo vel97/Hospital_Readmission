@@ -10,7 +10,7 @@ st.set_page_config(page_title="Readmission Analytics", layout="wide")
 
 # Heading
 # st.header('Prediction on Hospital Readmission')
-st.markdown("<h1 style='color: black;'>Prediction on Hospital Readmission</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='color: #0068C9;'>Prediction on Hospital Readmission</h1>", unsafe_allow_html=True)
 
 # Define background image with base64 format
 # def get_img(file):
@@ -219,7 +219,7 @@ if uploaded_file is not None:
 # print("Classification Report:")
 # print(classification_report(y_test, y_pred))
 
-st.markdown("<h1 style='color: black;'>Readmission Analysis</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='color: #0068C9;'>Readmission Analysis</h1>", unsafe_allow_html=True)
 # st.header("Readmission Analysis", unsafe_allow_html=True)
 
 # Page Layout
