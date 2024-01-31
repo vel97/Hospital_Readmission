@@ -8,6 +8,9 @@ from io import BytesIO
 # Title
 st.set_page_config(page_title="Readmission Analytics", layout="wide")
 
+# Heading
+st.header('Prediction on Hospital Readmission')
+
 # Define background image with base64 format
 # def get_img(file):
 # 	with open(file, "rb") as f:
@@ -214,10 +217,6 @@ if uploaded_file is not None:
 # from sklearn.metrics import accuracy_score, classification_report
 # print("Classification Report:")
 # print(classification_report(y_test, y_pred))
-
-
-# Heading
-st.header('Prediction on Hospital Readmission')
 
 # Page Layout
 c1, c2 = st.columns(2)
