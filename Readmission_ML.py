@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from io import BytesIO
 
 # Title
-st.set_page_config(page_title="Readmission Analytics", layout="wide")
+st.set_page_config(page_title="Hospital Re-Admission Analysis", layout="wide")
 
 # Heading
 # st.header('Prediction on Hospital Readmission')
@@ -225,9 +225,35 @@ st.markdown("<h1 style='color: black;'>Readmission Analysis</h1>", unsafe_allow_
 # Page Layout
 c1, c2 = st.columns(2)
 
-with c1:
+# Function to rename readmitted subcategories
+def readm_code_to_name(code):
+    if code == 0:
+        return 'Not Admitted'
+    elif code == 1:
+        return '<30days'
+    elif code == 2:
+        return '>30days'
+    else:
+         return code
+   
+# Apply the function to the Readminssion column
+df['READMITTED'] = df['READMITTED'].apply(readm_code_to_name)
+
+# Function to rename gender category
+def gen_code_to_name(code):
+    if code == 0:
+        return 'Female'
+    elif code == 1:
+        return 'Male'
+    else:
+        return code
+    
+# Apply the function to the Gender column
+df['GENDER'] = df['GENDER'].apply(gen_code_to_name)
+
+with c1:    
     # Calculate the percentage of patients readmitted within 30 days by age group
-    readmitted_within_30_days = df[df['READMITTED'] == 1]
+    readmitted_within_30_days = df[df['READMITTED'] == '<30days']
     readmitted_counts_by_age = readmitted_within_30_days.groupby('AGE').size()
     total_counts_by_age = df.groupby('AGE').size()
     readmission_rates_by_age = ((readmitted_counts_by_age / total_counts_by_age) * 100).round(2)
@@ -257,7 +283,7 @@ with c1:
 
 with c2:
     # Calculate the percentage of patients readmitted later than 30 days
-    readmitted_later_than_30_days = df[df['READMITTED'] == 2]
+    readmitted_later_than_30_days = df[df['READMITTED'] == '>30days']
 
     # Create a Stacked Pie chart plotting for percentage of patients readmitted later than 30 days by gender
     readmitted_counts_by_gender = readmitted_later_than_30_days.groupby('GENDER').size()
@@ -314,7 +340,7 @@ with c2:
                                         histnorm='percent')
     # Set transparent background
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-   
+    fig.update_traces(text=df['TIME_IN_HOSPITAL'], textposition='auto')
     st.plotly_chart(fig)
  
    
