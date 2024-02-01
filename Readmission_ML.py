@@ -312,7 +312,7 @@ c1, c2 = st.columns(2)
 
 with c1:
     # Calculate readmission rate by number of diagnoses from both early and later readmission
-    readmitted_counts = df[df['READMITTED'].isin([1,2])].groupby('NUMBER_DIAGNOSES').size()
+    readmitted_counts = df[df['READMITTED'].isin(['<30days','>30days'])].groupby('NUMBER_DIAGNOSES').size()
     total_counts_by_diag = df.groupby('NUMBER_DIAGNOSES').size()
     readmission_rate_by_diag = ((readmitted_counts / total_counts_by_diag) * 100).round(2)
 
