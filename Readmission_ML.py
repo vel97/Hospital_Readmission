@@ -8,10 +8,6 @@ from io import BytesIO
 # Title
 st.set_page_config(page_title="Hospital Re-Admission Analysis", layout="wide")
 
-# Heading
-# st.header('Prediction on Hospital Readmission')
-st.markdown("<h1 style='color: black;'>Prediction on Hospital Readmission</h1>", unsafe_allow_html=True)
-
 # Define background image with base64 format
 # def get_img(file):
 # 	with open(file, "rb") as f:
@@ -30,11 +26,16 @@ def add_bg_from_local(image_file):
         background-image: url(data:image/{"png"};base64,{encoded_string.decode()});
         background-size: cover
     }}
+    
+    [data-testid="stFileUploader"] {{
+		width: 500px;
+    }}
+                
     </style>
     """,
     unsafe_allow_html=True
     )
-bg_img = add_bg_from_local('Pharma2.png')
+bg_img = add_bg_from_local('../src/img/Pharma2.png')
 
 # styles = f"""
 # 			<style>
@@ -58,21 +59,6 @@ session = Session.builder.configs({'user': 'svel',
                                    'schema': 'readmission',
                                    'role':'ACCOUNTADMIN'}).create()
 
-# Uploaded Data
-uploaded_file = st.file_uploader("Choose a file", type=["csv", "txt"])
-
-if uploaded_file is not None:
-    # button = st.button("Select Mode:", ["Single", "Batch"])
-    upd_df = pd.read_csv(uploaded_file)
-    # Change data types of multiple columns
-    dtype_dict_upd = {
-        'MEDICAL_SPECIALTY': 'int64',
-        'DIAG_1': float,
-        'DIAG_2': float
-    }
-
-    # Change data types of multiple columns
-    upd_df = upd_df.astype(dtype_dict_upd) 
 
 # Data
 result = session.sql("SELECT * FROM DATA")
@@ -103,6 +89,230 @@ dtype_dict = {
 # Change data types of multiple columns
 df = df.astype(dtype_dict) 
 
+st.markdown("<h1 style='color: #3d9df3;text-align: center'>Hospital Re-Admission Analysis</h1>", unsafe_allow_html=True)
+# st.header("Readmission Analysis", unsafe_allow_html=True)
+
+# Page Layout
+c1, c2 = st.columns(2)
+
+# Function to rename readmitted subcategories
+def readm_code_to_name(code):
+    if code == 0:
+        return 'Not Admitted'
+    elif code == 1:
+        return '<30days'
+    elif code == 2:
+        return '>30days'
+    else:
+         return code
+   
+   
+chart_df = df.copy()
+   
+# Apply the function to the Readminssion column
+chart_df['READMITTED'] = chart_df['READMITTED'].apply(readm_code_to_name)
+
+# Function to rename gender category
+def gen_code_to_name(code):
+    if code == 0:
+        return 'Female'
+    elif code == 1:
+        return 'Male'
+    else:
+        return code
+    
+# Apply the function to the Gender column
+chart_df['GENDER'] = chart_df['GENDER'].apply(gen_code_to_name)
+
+with c1:    
+    # Calculate the percentage of patients readmitted within 30 days by age group
+    readmitted_within_30_days = chart_df[chart_df['READMITTED'] == '<30days']
+    readmitted_counts_by_age = readmitted_within_30_days.groupby('AGE').size()
+    total_counts_by_age = chart_df.groupby('AGE').size()
+    readmission_rates_by_age = ((readmitted_counts_by_age / total_counts_by_age) * 100).round(2)
+
+    # Create a Barchart plotting for percentage of patients readmitted within 30 days by age group
+    readmission_rates_age = pd.DataFrame({'Age Group': readmission_rates_by_age.index,
+                                        'Readmission Rate (%)': readmission_rates_by_age.values})
+
+    # Sort the DataFrame by age group
+    readmission_rates_age = readmission_rates_age.sort_values(by='Age Group')
+
+    # Plot the bar chart
+    fig = px.bar(readmission_rates_age, x='Age Group', y='Readmission Rate (%)',
+                title='Percentage of Patients Readmitted within 30 Days by Age Group',
+                labels={'Readmission Rate (%)': 'Readmission Rate (%)'},
+                text='Readmission Rate (%)',
+                color='Age Group', width=600)
+    
+    # Set x-axis range
+    fig.update_xaxes(range=[10, 100]) 
+    
+    # Set transparent background
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+    
+    # Customize tick and label colors for x-axis and y-axis
+    fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                    titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+    fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                    titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+
+    # show chart
+    st.plotly_chart(fig)
+
+with c2:
+    # Calculate the percentage of patients readmitted later than 30 days
+    readmitted_later_than_30_days = chart_df[chart_df['READMITTED'] == '>30days']
+
+    # Create a Stacked Pie chart plotting for percentage of patients readmitted later than 30 days by gender
+    readmitted_counts_by_gender = readmitted_later_than_30_days.groupby('GENDER').size()
+    total_counts_by_gender = chart_df.groupby('GENDER').size()
+    readmission_rates_by_gender = ((readmitted_counts_by_gender / total_counts_by_gender) * 100).round(2)
+
+    # Create a DataFrame for plotting
+    readmission_rates_gen = pd.DataFrame({'Gender': readmission_rates_by_gender.index,
+                                        'Readmission Rate (%)': readmission_rates_by_gender.values})
+
+    # Plot the Pie chart
+    fig = px.pie(readmission_rates_gen, values='Readmission Rate (%)', names='Gender',
+                title='Percentage of Patients Readmitted Later than 30 Days by Gender',
+                labels={'Readmission Rate (%)': 'Readmission Rate (%)'},
+                color= 'Gender', width=600)
+
+    # Set transparent background
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+
+    # Show the plot
+    st.plotly_chart(fig)
+    
+
+# Page Layout
+c1, c2 = st.columns(2)
+
+with c1:
+    # Calculate readmission rate by number of diagnoses from both early and later readmission
+    readmitted_counts = chart_df[chart_df['READMITTED'].isin(['<30days','>30days'])].groupby('NUMBER_DIAGNOSES').size()
+    total_counts_by_diag = chart_df.groupby('NUMBER_DIAGNOSES').size()
+    readmission_rate_by_diag = ((readmitted_counts / total_counts_by_diag) * 100).round(2)
+
+    readmission_diag = pd.DataFrame({'Number of Diagnoses': readmission_rate_by_diag.index, 'Readmission Rate (%)': readmission_rate_by_diag.values})
+
+    # Sort the DataFrame by number of diagnoses
+    readmission_diag.sort_values(by='Number of Diagnoses', inplace=True)
+
+    # Create a line chart
+    fig = px.line(readmission_diag, x='Number of Diagnoses', y='Readmission Rate (%)', 
+                title='Readmission Rate by Number of Diagnoses',
+                labels={'Number of Diagnoses': 'Number of Diagnoses', 'Readmission Rate (%)': 'Readmission Rate (%)'},
+                text='Readmission Rate (%)', width=600)
+    # Set transparent background
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+    
+    # Customize tick and label colors for x-axis and y-axis
+    fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                    titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+    fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                    titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+    
+    fig.update_traces(textposition='top center',  # Move text to the top center of each point
+                  textfont=dict(color='red'),  # Customize text font
+                  texttemplate='%{text:.1f}',  # Format text
+                  hoverinfo='skip')  # Hide hover info to only display text
+
+    st.plotly_chart(fig)
+    
+
+with c2:
+    # Histogram for Time in Hospital Stay By Readmission
+    fig = px.histogram(chart_df, x='TIME_IN_HOSPITAL', color='READMITTED',
+                                        title='Distribution of Hospital Stay Duration by Readmission',
+                                        labels={'TIME_IN_HOSPITAL': 'Time in Hospital (days)'},
+                                        histnorm='percent')
+    # Set transparent background
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+    fig.update_traces(text=chart_df['TIME_IN_HOSPITAL'], textposition='auto')
+    
+    # Customize tick and label colors for x-axis and y-axis
+    fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                    titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+    fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                    titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+    
+    st.plotly_chart(fig)
+ 
+   
+# Page Layout
+c1, c2 = st.columns(2)
+ 
+with c1:
+    # Count the occurrences of readmission status for each combination of Diag1 and Diag2
+    diag_readmission_count = chart_df.groupby(['DIAG_1', 'DIAG_2', 'READMITTED']).size().reset_index(name='count')
+ 
+    # Create a radio button
+    options_mapping = ['DIAG_1', 'DIAG_2']
+    selected_ds = st.radio("***Diagnosis***", options_mapping)
+ 
+    if selected_ds == "DIAG_1":
+        # Create a bar chart
+        fig = px.bar(diag_readmission_count, x=selected_ds, y='count', color='READMITTED',
+                        category_orders={'DIAG_1': sorted(chart_df['DIAG_1'].unique())},
+                        labels={'count': 'Count of Readmission by Diagnosis 1', 'DIAG_1': 'Diagnosis 1'},
+                        title='Readmission Trends Across Diagnoses')
+        
+        # Customize tick and label colors for x-axis and y-axis
+        fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                        titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+        fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                        titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+ 
+        # Set transparent background
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+   
+   
+        # Render the chart using Streamlit
+        st.plotly_chart(fig)
+       
+    elif selected_ds == "DIAG_2":
+        # Create a bar chart
+        fig = px.bar(diag_readmission_count, x=selected_ds, y='count', color='READMITTED',
+                        category_orders={'DIAG_2': sorted(chart_df['DIAG_2'].unique())},
+                        labels={'count': 'Count of Readmission by Diagnosis 2', 'DIAG_2': 'Diagnosis 2'},
+                        title='Readmission Trends Across Diagnoses')
+ 
+        # Set transparent background
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+        
+        # Customize tick and label colors for x-axis and y-axis
+        fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                        titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+        fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                        titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+   
+   
+        # Render the chart using Streamlit
+        st.plotly_chart(fig)
+
+
+# st.header('Prediction on Hospital Readmission')
+st.markdown("<h2 style='color: #3d9df3;'>Prediction</h2>", unsafe_allow_html=True)
+
+# Uploaded Data
+uploaded_file = st.file_uploader("Choose a file", type=["csv", "txt"])
+
+if uploaded_file is not None:
+    # button = st.button("Select Mode:", ["Single", "Batch"])
+    upd_df = pd.read_csv(uploaded_file)
+    # Change data types of multiple columns
+    dtype_dict_upd = {
+        'MEDICAL_SPECIALTY': 'int64',
+        'DIAG_1': float,
+        'DIAG_2': float
+    }
+
+    # Change data types of multiple columns
+    upd_df = upd_df.astype(dtype_dict_upd) 
+    
+    
 from sklearn import preprocessing
 label_encoder = preprocessing.LabelEncoder()
 
@@ -167,26 +377,62 @@ ovr_classifier.fit(x_train, y_train)
 y_pred = ovr_classifier.predict(x_test)
 
 if uploaded_file is not None:
-    # button = st.button("Single", "Batch")
-    if st.button('Single'):
+    tab_titles = ['Single', 'Batch']
+    tablet = st.tabs(tab_titles)
+    
+    # Custom CSS for tabs
+    custom_tabs_css = """
+    <style>
+    .stTabs [data-baseweb="tab-list"] {
+        display: flex;
+        justify-content: space-between;
+        width: 200px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 35px;
+        width: 130px;
+        white-space: pre-wrap;
+        background-color: #5ca8f1;
+        border-radius: 10px 10px 10px 10px;
+        color: white;
+        gap: 50px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        text-align: center;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: white;
+        border-radius: 10px 10px 0px 0px;
+        color: #5ca8f1;
+    }
+    </style>
+    """
+    
+    # Inject custom CSS
+    st.markdown(custom_tabs_css, unsafe_allow_html=True)
+    
+    with tablet[0]:
         y_pred = pd.DataFrame(y_pred)
         y_pred.rename(columns={0: 'READMITTED'}, inplace=True)
-        st.subheader('Predicted Data')
+        st.markdown("<h4 style='color: #3d9df3;'>Predicted Data</h4>", unsafe_allow_html=True)
         # st.write(y_pred)
         
         s1 = upd_df['PATIENT_NBR'][0]
         # Description of predicted result
         if y_pred['READMITTED'].iloc[0] == 0:
             # string = "The patient" + upd_df['PATIENT_NBR'][0] + "is not likely to be readmitted."
-            st.write(f'**The patient {s1} is not likely to be readmitted.**')
+            # st.write(f'**The patient {s1} is not likely to be readmitted.**')
+            st.markdown(f"<h6>The patient <span style='color: #EF7B45;'>{s1}</span> is not likely to be readmitted</h6>", unsafe_allow_html=True)
         elif y_pred['READMITTED'].iloc[0] == 1:
-            st.write(f'**The patient {s1} is likely to be readmitted within 30days.**')
+            # st.write(f'**The patient {s1} is likely to be readmitted within 30days.**')
+            st.markdown(f"<h6>The patient <span style='color: #EF7B45;'>{s1}</span> is likely to be readmitted within 30days.</h6>", unsafe_allow_html=True)
         elif y_pred['READMITTED'].iloc[0] == 2:
-            st.write(f'**The patient {s1} is likely to be readmitted after 30days.**')
-            
-        # y_test = y_test.head(99)
-        
-    if st.button('Batch') :
+            # st.write(f'**The patient {s1} is likely to be readmitted after 30days.**')
+            st.markdown(f"<h6>The patient <span style='color: #EF7B45;'>{s1}</span> is likely to be readmitted after 30days.</h6>", unsafe_allow_html=True)
+                
+    with tablet[1]:
         y_pred = pd.DataFrame(y_pred)
         y_pred.rename(columns={0: 'READMITTED'}, inplace=True)
         a = pd.concat([upd_df['PATIENT_NBR'], y_pred], axis=1)
@@ -194,14 +440,49 @@ if uploaded_file is not None:
         csv_file = BytesIO()
         a.to_csv(csv_file, index=False)
 
+        
         # Create a download link
-        st.download_button(
-        label='Download Predictions CSV',
-        data=csv_file.getvalue(),
-        file_name='predictions.csv',
-        key='download_button')
+        if st.download_button(label='Download Predictions CSV',data=csv_file.getvalue(),file_name='predictions.csv',key='download_button'):
+            # st.success("The predictions are downloaded!")
 
-        st.write('The Predictions are downloaded')
+            st.markdown("<I><h6 style='color: #03c04a;'>The predictions are downloaded!</h6></I>", unsafe_allow_html=True)
+    
+    
+    # button = st.button("Single", "Batch")
+    # if st.button('Single'):
+    #     y_pred = pd.DataFrame(y_pred)
+    #     y_pred.rename(columns={0: 'READMITTED'}, inplace=True)
+    #     st.subheader('Predicted Data')
+    #     # st.write(y_pred)
+        
+    #     s1 = upd_df['PATIENT_NBR'][0]
+    #     # Description of predicted result
+    #     if y_pred['READMITTED'].iloc[0] == 0:
+    #         # string = "The patient" + upd_df['PATIENT_NBR'][0] + "is not likely to be readmitted."
+    #         st.write(f'**The patient {s1} is not likely to be readmitted.**')
+    #     elif y_pred['READMITTED'].iloc[0] == 1:
+    #         st.write(f'**The patient {s1} is likely to be readmitted within 30days.**')
+    #     elif y_pred['READMITTED'].iloc[0] == 2:
+    #         st.write(f'**The patient {s1} is likely to be readmitted after 30days.**')
+            
+    #     # y_test = y_test.head(99)
+        
+    # if st.button('Batch') :
+    #     y_pred = pd.DataFrame(y_pred)
+    #     y_pred.rename(columns={0: 'READMITTED'}, inplace=True)
+    #     a = pd.concat([upd_df['PATIENT_NBR'], y_pred], axis=1)
+    #     # Save the concatenated DataFrame to BytesIO
+    #     csv_file = BytesIO()
+    #     a.to_csv(csv_file, index=False)
+
+    #     # Create a download link
+    #     st.download_button(
+    #     label='Download Predictions CSV',
+    #     data=csv_file.getvalue(),
+    #     file_name='predictions.csv',
+    #     key='download_button')
+
+    #     st.write('The Predictions are downloaded')
         # st.write("Predictions are completed")
         # if st.button('Download as CSV'):
 
@@ -218,167 +499,3 @@ if uploaded_file is not None:
 # from sklearn.metrics import accuracy_score, classification_report
 # print("Classification Report:")
 # print(classification_report(y_test, y_pred))
-
-st.markdown("<h1 style='color: black;'>Readmission Analysis</h1>", unsafe_allow_html=True)
-# st.header("Readmission Analysis", unsafe_allow_html=True)
-
-# Page Layout
-c1, c2 = st.columns(2)
-
-# Function to rename readmitted subcategories
-def readm_code_to_name(code):
-    if code == 0:
-        return 'Not Admitted'
-    elif code == 1:
-        return '<30days'
-    elif code == 2:
-        return '>30days'
-    else:
-         return code
-   
-# Apply the function to the Readminssion column
-df['READMITTED'] = df['READMITTED'].apply(readm_code_to_name)
-
-# Function to rename gender category
-def gen_code_to_name(code):
-    if code == 0:
-        return 'Female'
-    elif code == 1:
-        return 'Male'
-    else:
-        return code
-    
-# Apply the function to the Gender column
-df['GENDER'] = df['GENDER'].apply(gen_code_to_name)
-
-with c1:    
-    # Calculate the percentage of patients readmitted within 30 days by age group
-    readmitted_within_30_days = df[df['READMITTED'] == '<30days']
-    readmitted_counts_by_age = readmitted_within_30_days.groupby('AGE').size()
-    total_counts_by_age = df.groupby('AGE').size()
-    readmission_rates_by_age = ((readmitted_counts_by_age / total_counts_by_age) * 100).round(2)
-
-    # Create a Barchart plotting for percentage of patients readmitted within 30 days by age group
-    readmission_rates_age = pd.DataFrame({'Age Group': readmission_rates_by_age.index,
-                                        'Readmission Rate (%)': readmission_rates_by_age.values})
-
-    # Sort the DataFrame by age group
-    readmission_rates_age = readmission_rates_age.sort_values(by='Age Group')
-
-    # Plot the bar chart
-    fig = px.bar(readmission_rates_age, x='Age Group', y='Readmission Rate (%)',
-                title='Percentage of Patients Readmitted within 30 Days by Age Group',
-                labels={'Readmission Rate (%)': 'Readmission Rate (%)'},
-                text='Readmission Rate (%)',
-                color='Age Group', width=600)
-    
-    # Set x-axis range
-    fig.update_xaxes(range=[10, 100]) 
-    
-    # Set transparent background
-    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-
-    # show chart
-    st.plotly_chart(fig)
-
-with c2:
-    # Calculate the percentage of patients readmitted later than 30 days
-    readmitted_later_than_30_days = df[df['READMITTED'] == '>30days']
-
-    # Create a Stacked Pie chart plotting for percentage of patients readmitted later than 30 days by gender
-    readmitted_counts_by_gender = readmitted_later_than_30_days.groupby('GENDER').size()
-    total_counts_by_gender = df.groupby('GENDER').size()
-    readmission_rates_by_gender = ((readmitted_counts_by_gender / total_counts_by_gender) * 100).round(2)
-
-    # Create a DataFrame for plotting
-    readmission_rates_gen = pd.DataFrame({'Gender': readmission_rates_by_gender.index,
-                                        'Readmission Rate (%)': readmission_rates_by_gender.values})
-
-    # Plot the Pie chart
-    fig = px.pie(readmission_rates_gen, values='Readmission Rate (%)', names='Gender',
-                title='Percentage of Patients Readmitted Later than 30 Days by Gender',
-                labels={'Readmission Rate (%)': 'Readmission Rate (%)'},
-                color= 'Gender', width=600)
-
-    # Set transparent background
-    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-
-    # Show the plot
-    st.plotly_chart(fig)
-    
-
-# Page Layout
-c1, c2 = st.columns(2)
-
-with c1:
-    # Calculate readmission rate by number of diagnoses from both early and later readmission
-    readmitted_counts = df[df['READMITTED'].isin(['<30days','>30days'])].groupby('NUMBER_DIAGNOSES').size()
-    total_counts_by_diag = df.groupby('NUMBER_DIAGNOSES').size()
-    readmission_rate_by_diag = ((readmitted_counts / total_counts_by_diag) * 100).round(2)
-
-    readmission_diag = pd.DataFrame({'Number of Diagnoses': readmission_rate_by_diag.index, 'Readmission Rate (%)': readmission_rate_by_diag.values})
-
-    # Sort the DataFrame by number of diagnoses
-    readmission_diag.sort_values(by='Number of Diagnoses', inplace=True)
-
-    # Create a line chart
-    fig = px.line(readmission_diag, x='Number of Diagnoses', y='Readmission Rate (%)', 
-                title='Readmission Rate by Number of Diagnoses',
-                labels={'Number of Diagnoses': 'Number of Diagnoses', 'Readmission Rate (%)': 'Readmission Rate (%)'},
-                text='Readmission Rate (%)', width=600)
-    # Set transparent background
-    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-
-    st.plotly_chart(fig)
-    
-
-with c2:
-    # Histogram for Time in Hospital Stay By Readmission
-    fig = px.histogram(df, x='TIME_IN_HOSPITAL', color='READMITTED',
-                                        title='Distribution of Hospital Stay Duration by Readmission',
-                                        labels={'TIME_IN_HOSPITAL': 'Time in Hospital (days)'},
-                                        histnorm='percent')
-    # Set transparent background
-    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-    fig.update_traces(text=df['TIME_IN_HOSPITAL'], textposition='auto')
-    st.plotly_chart(fig)
- 
-   
-# Page Layout
-c1, c2 = st.columns(2)
- 
-with c1:
-    # Count the occurrences of readmission status for each combination of Diag1 and Diag2
-    diag_readmission_count = df.groupby(['DIAG_1', 'DIAG_2', 'READMITTED']).size().reset_index(name='count')
- 
-    # Create a radio button
-    options_mapping = ['DIAG_1', 'DIAG_2']
-    selected_ds = st.radio("***Diagnosis***", options_mapping)
- 
-    if selected_ds == "DIAG_1":
-        # Create a bar chart
-        fig = px.bar(diag_readmission_count, x=selected_ds, y='count', color='READMITTED',
-                        category_orders={'DIAG_1': sorted(df['DIAG_1'].unique())},
-                        labels={'count': 'Count of Readmission by Diagnosis 1', 'DIAG_1': 'Diagnosis 1'},
-                        title='Readmission Trends Across Diagnoses')
- 
-        # Set transparent background
-        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-   
-   
-        # Render the chart using Streamlit
-        st.plotly_chart(fig)
-       
-    elif selected_ds == "DIAG_2":
-        # Create a bar chart
-        fig = px.bar(diag_readmission_count, x=selected_ds, y='count', color='READMITTED',
-                        category_orders={'DIAG_2': sorted(df['DIAG_2'].unique())},
-                        labels={'count': 'Count of Readmission by Diagnosis 2', 'DIAG_2': 'Diagnosis 2'},
-                        title='Readmission Trends Across Diagnoses')
- 
-        # Set transparent background
-        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-   
-   
-        # Render the chart using Streamlit
-        st.plotly_chart(fig)
