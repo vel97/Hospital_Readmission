@@ -30,12 +30,16 @@ def add_bg_from_local(image_file):
     [data-testid="stFileUploader"] {{
 		width: 500px;
     }}
+    
+    .row-widget.stSelectbox {{
+		width: 200px;
+    }}
                 
     </style>
     """,
     unsafe_allow_html=True
     )
-bg_img = add_bg_from_local('Pharma2.png')
+bg_img = add_bg_from_local('../src/img/Pharma2.png')
 
 # styles = f"""
 # 			<style>
@@ -124,7 +128,23 @@ def gen_code_to_name(code):
 # Apply the function to the Gender column
 chart_df['GENDER'] = chart_df['GENDER'].apply(gen_code_to_name)
 
+# Function to rename DiabetMed category
+def dbt_code_to_name(code):
+    if code == 0:
+        return 'Non-diabetic'
+    elif code == 1:
+        return 'Diabetic'
+    else:
+        return code
+    
+# Apply the function to the DiabetMed column
+chart_df['DIABETESMED'] = chart_df['DIABETESMED'].apply(dbt_code_to_name)
+
 with c1:    
+    
+    # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Percentage of Patients Readmitted within 30 Days by Age Group</h5>", unsafe_allow_html=True)
+
     # Calculate the percentage of patients readmitted within 30 days by age group
     readmitted_within_30_days = chart_df[chart_df['READMITTED'] == '<30days']
     readmitted_counts_by_age = readmitted_within_30_days.groupby('AGE').size()
@@ -140,7 +160,6 @@ with c1:
 
     # Plot the bar chart
     fig = px.bar(readmission_rates_age, x='Age Group', y='Readmission Rate (%)',
-                title='Percentage of Patients Readmitted within 30 Days by Age Group',
                 labels={'Readmission Rate (%)': 'Readmission Rate (%)'},
                 text='Readmission Rate (%)',
                 color='Age Group', width=600)
@@ -161,6 +180,10 @@ with c1:
     st.plotly_chart(fig)
 
 with c2:
+    
+    # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Percentage of Patients Readmitted Later than 30 Days by Gender</h5>", unsafe_allow_html=True)
+    
     # Calculate the percentage of patients readmitted later than 30 days
     readmitted_later_than_30_days = chart_df[chart_df['READMITTED'] == '>30days']
 
@@ -175,7 +198,6 @@ with c2:
 
     # Plot the Pie chart
     fig = px.pie(readmission_rates_gen, values='Readmission Rate (%)', names='Gender',
-                title='Percentage of Patients Readmitted Later than 30 Days by Gender',
                 labels={'Readmission Rate (%)': 'Readmission Rate (%)'},
                 color= 'Gender', width=600)
 
@@ -190,6 +212,10 @@ with c2:
 c1, c2 = st.columns(2)
 
 with c1:
+    
+    # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Readmission Rate by Number of Diagnoses</h5>", unsafe_allow_html=True)
+
     # Calculate readmission rate by number of diagnoses from both early and later readmission
     readmitted_counts = chart_df[chart_df['READMITTED'].isin(['<30days','>30days'])].groupby('NUMBER_DIAGNOSES').size()
     total_counts_by_diag = chart_df.groupby('NUMBER_DIAGNOSES').size()
@@ -202,7 +228,6 @@ with c1:
 
     # Create a line chart
     fig = px.line(readmission_diag, x='Number of Diagnoses', y='Readmission Rate (%)', 
-                title='Readmission Rate by Number of Diagnoses',
                 labels={'Number of Diagnoses': 'Number of Diagnoses', 'Readmission Rate (%)': 'Readmission Rate (%)'},
                 text='Readmission Rate (%)', width=600)
     # Set transparent background
@@ -223,9 +248,12 @@ with c1:
     
 
 with c2:
+    
+    # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Distribution of Hospital Stay Duration by Readmission</h5>", unsafe_allow_html=True)
+    
     # Histogram for Time in Hospital Stay By Readmission
     fig = px.histogram(chart_df, x='TIME_IN_HOSPITAL', color='READMITTED',
-                                        title='Distribution of Hospital Stay Duration by Readmission',
                                         labels={'TIME_IN_HOSPITAL': 'Time in Hospital (days)'},
                                         histnorm='percent')
     # Set transparent background
@@ -243,8 +271,46 @@ with c2:
    
 # Page Layout
 c1, c2 = st.columns(2)
- 
+
 with c1:
+    
+    # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Analyzing Readmission Trends in Diabetic Cases</h5>", unsafe_allow_html=True)
+    
+    # Count the occurrences of Readmission for each Diabetes type
+    filter_option = ('All', 'Diabetic', 'Non-diabetic')
+    selected_dbm = st.selectbox("***Diabetic Status***", filter_option)
+    
+    # Filter the DataFrame based on the selected option
+    if selected_dbm == 'All':
+        filtered_df = chart_df[chart_df['DIABETESMED'].isin(['Diabetic', 'Non-diabetic'])]
+    elif selected_dbm == 'Non-diabetic':
+        filtered_df = chart_df[chart_df['DIABETESMED'].isin(['Non-diabetic'])]
+    elif selected_dbm == 'Diabetic':
+        filtered_df = chart_df[chart_df['DIABETESMED'].isin(['Diabetic'])]
+
+    diabetes_readmission = filtered_df.groupby(['DIABETESMED', 'READMITTED']).size().reset_index(name='count')
+    
+    # Create a horizontal bar chart
+    fig = px.bar(diabetes_readmission, x='count', y='READMITTED', color='DIABETESMED', orientation='h',
+                labels={'count': 'Count', 'DIABETESMED': 'Diabetic Status', 'READMITTED': 'Readmission Type'}, width=600,
+                text='count')
+
+    # Set transparent background
+    fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+    
+    # Customize tick and label colors for x-axis and y-axis
+    fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                    titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+    fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                        titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+    # Render the chart using Streamlit
+    st.plotly_chart(fig)
+    
+with c2:
+    
+    # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Readmission Trends Across Diagnoses</h5>", unsafe_allow_html=True)
     # Count the occurrences of readmission status for each combination of Diag1 and Diag2
     diag_readmission_count = chart_df.groupby(['DIAG_1', 'DIAG_2', 'READMITTED']).size().reset_index(name='count')
  
@@ -256,8 +322,7 @@ with c1:
         # Create a bar chart
         fig = px.bar(diag_readmission_count, x=selected_ds, y='count', color='READMITTED',
                         category_orders={'DIAG_1': sorted(chart_df['DIAG_1'].unique())},
-                        labels={'count': 'Count of Readmission by Diagnosis 1', 'DIAG_1': 'Diagnosis 1'},
-                        title='Readmission Trends Across Diagnoses')
+                        labels={'count': 'Count of Readmission by Diagnosis 1', 'DIAG_1': 'Diagnosis 1'},width=600)
         
         # Customize tick and label colors for x-axis and y-axis
         fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
