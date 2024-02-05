@@ -103,7 +103,7 @@ c1, c2 = st.columns(2)
 # Function to rename readmitted subcategories
 def readm_code_to_name(code):
     if code == 0:
-        return 'Not Admitted'
+        return 'Not Re-Admitted'
     elif code == 1:
         return '<30days'
     elif code == 2:
