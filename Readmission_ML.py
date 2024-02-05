@@ -144,6 +144,30 @@ def dbt_code_to_name(code):
 # Apply the function to the DiabetMed column
 chart_df['DIABETESMED'] = chart_df['DIABETESMED'].apply(dbt_code_to_name)
 
+# Function to rename Inpatient category
+def inpat_code_to_name(code):
+    if code < 1:
+        return 0
+    elif code >= 1:
+        return 1
+    else:
+        return code
+   
+# Apply the function to the Inpatient column
+chart_df['NUMBER_INPATIENT'] = chart_df['NUMBER_INPATIENT'].apply(inpat_code_to_name)
+ 
+# Function to rename Emergency category
+def emrg_code_to_name(code):
+    if code < 1:
+        return 0
+    elif code >= 1:
+        return 1
+    else:
+        return code
+   
+# Apply the function to the Emergency column
+chart_df['NUMBER_EMERGENCY'] = chart_df['NUMBER_EMERGENCY'].apply(emrg_code_to_name)
+
 with c1:    
     
     # Heading
