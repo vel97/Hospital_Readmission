@@ -595,7 +595,7 @@ with c2:
         # Heading
         st.markdown("<h6 style='color: #0068c9;'>Analyzing Readmission Trends For Previous Year's Emergency Admissions</h6>", unsafe_allow_html=True)
 
-        emg_not_visited = chart_df[chart_df['NUMBER_EMERGENCY'] >= 0]
+        emg_not_visited = chart_df[chart_df['NUMBER_EMERGENCY'] > 0]
         emg_readmission_count = emg_not_visited.groupby(['NUMBER_EMERGENCY', 'READMITTED']).size().reset_index(name='count')
 
         fig = px.treemap(emg_readmission_count, 
