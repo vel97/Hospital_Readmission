@@ -430,7 +430,7 @@ with c1:
         # Heading
         st.markdown("<h6 style='color: #0068c9;'>Analyzing Readmission Trends For Previous Year's Inpatient Admission</h6>", unsafe_allow_html=True)
 
-        inpat_not_visited = chart_df[chart_df['NUMBER_INPATIENT'] >= 0]
+        inpat_not_visited = chart_df[chart_df['NUMBER_INPATIENT'] > 0]
         inpat_readmission_count = inpat_not_visited.groupby(['NUMBER_INPATIENT', 'READMITTED']).size().reset_index(name='count')
         
         # fig = px.bar(chart_df, x='NUMBER_INPATIENT', y='READMITTED', title='Number of Inpatient Visits by Patient Number', color='NUMBER_INPATIENT'
