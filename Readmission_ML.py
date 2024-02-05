@@ -721,20 +721,23 @@ if uploaded_file is not None:
     x_test = upd_df
 
 ########################## random forest model #########################
-from sklearn.metrics import accuracy_score, roc_auc_score
-# from sklearn.model_selection import cross_val_score
+#Imbalanced learning
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
-rfc = RandomForestClassifier(bootstrap=False, max_depth=8, min_samples_leaf=2, min_samples_split=4, n_estimators=70)
+rfc = RandomForestClassifier()
 
-# Create One-vs-Rest Classifier
-from sklearn.multiclass import OneVsRestClassifier
-ovr_classifier = OneVsRestClassifier(rfc)
+#Fitting the best model from best_params
+steps = [('sampling', SMOTE(sampling_strategy='all')), ('model', RandomForestClassifier(bootstrap=False, max_depth=8, min_samples_leaf=2, min_samples_split=4
+, n_estimators=70))]
+pipe = Pipeline(steps=steps)
+
 
 # Train the model
-ovr_classifier.fit(x_train, y_train)
+pipe.fit(x_train, y_train)
 
 ############################################################################ Make predictions on the test set ################################################
-y_pred = ovr_classifier.predict(x_test)
+y_pred = pipe.predict(x_test)
 
 if uploaded_file is not None:
     tab_titles = ['Single', 'Batch']
