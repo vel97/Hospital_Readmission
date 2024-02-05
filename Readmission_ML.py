@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import base64
+import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 from io import BytesIO
@@ -31,7 +32,7 @@ def add_bg_from_local(image_file):
 		width: 500px;
     }}
     
-    .row-widget.stSelectbox {{
+    [data-testid="stSelectbox"] {{
 		width: 200px;
     }}
                 
@@ -39,7 +40,7 @@ def add_bg_from_local(image_file):
     """,
     unsafe_allow_html=True
     )
-bg_img = add_bg_from_local('Pharma2.png')
+bg_img = add_bg_from_local('../src/img/Pharma2.png')
 
 # styles = f"""
 # 			<style>
@@ -94,7 +95,7 @@ dtype_dict = {
 df = df.astype(dtype_dict) 
 
 st.markdown("<h1 style='color: #3d9df3;text-align: center'>Hospital Re-Admission Analysis</h1>", unsafe_allow_html=True)
-# st.header("Readmission Analysis", unsafe_allow_html=True)
+st.markdown('<br><br>',unsafe_allow_html=True)
 
 # Page Layout
 c1, c2 = st.columns(2)
@@ -113,6 +114,9 @@ def readm_code_to_name(code):
    
 chart_df = df.copy()
    
+# Renameing df column TIME_IN_HOSPITAL, DIAG_1, DIAG_2
+chart_df = chart_df.rename(columns={'TIME_IN_HOSPITAL': 'LENGTH_OF_STAY', 'DIAG_1': 'Primary', 'DIAG_2': 'Secondary'})
+
 # Apply the function to the Readminssion column
 chart_df['READMITTED'] = chart_df['READMITTED'].apply(readm_code_to_name)
 
@@ -143,7 +147,7 @@ chart_df['DIABETESMED'] = chart_df['DIABETESMED'].apply(dbt_code_to_name)
 with c1:    
     
     # Heading
-    st.markdown("<h5 style='color: #0068c9;'>Percentage of Patients Readmitted within 30 Days by Age Group</h5>", unsafe_allow_html=True)
+    st.markdown("<h5 style='color: #0068c9;'>Rate of Patients Readmitted within 30 Days by Age Group</h5>", unsafe_allow_html=True)
 
     # Calculate the percentage of patients readmitted within 30 days by age group
     readmitted_within_30_days = chart_df[chart_df['READMITTED'] == '<30days']
@@ -182,7 +186,7 @@ with c1:
 with c2:
     
     # Heading
-    st.markdown("<h5 style='color: #0068c9;'>Percentage of Patients Readmitted Later than 30 Days by Gender</h5>", unsafe_allow_html=True)
+    st.markdown("<h5 style='color: #0068c9;'>Rate of Patients Readmitted Later than 30 Days by Gender</h5>", unsafe_allow_html=True)
     
     # Calculate the percentage of patients readmitted later than 30 days
     readmitted_later_than_30_days = chart_df[chart_df['READMITTED'] == '>30days']
@@ -214,7 +218,7 @@ c1, c2 = st.columns(2)
 with c1:
     
     # Heading
-    st.markdown("<h5 style='color: #0068c9;'>Readmission Rate by Number of Diagnoses</h5>", unsafe_allow_html=True)
+    st.markdown("<h5 style='color: #0068c9;'>Rate of Readmission by Number of Diagnoses</h5>", unsafe_allow_html=True)
 
     # Calculate readmission rate by number of diagnoses from both early and later readmission
     readmitted_counts = chart_df[chart_df['READMITTED'].isin(['<30days','>30days'])].groupby('NUMBER_DIAGNOSES').size()
@@ -250,21 +254,34 @@ with c1:
 with c2:
     
     # Heading
-    st.markdown("<h5 style='color: #0068c9;'>Distribution of Hospital Stay Duration by Readmission</h5>", unsafe_allow_html=True)
+    st.markdown("<h5 style='color: #0068c9;'>Average Length of Stay (LOS) by Readmission</h5>", unsafe_allow_html=True)
     
     # Histogram for Time in Hospital Stay By Readmission
-    fig = px.histogram(chart_df, x='TIME_IN_HOSPITAL', color='READMITTED',
-                                        labels={'TIME_IN_HOSPITAL': 'Time in Hospital (days)'},
-                                        histnorm='percent')
+    # fig = px.histogram(chart_df, x='LENGTH_OF_STAY', color='READMITTED',
+    #                                     labels={'LENGTH_OF_STAY': 'Length of stay in Hospital (days)'},
+    #                                     histnorm='percent')
+    
+    # Group data based on readmitted status and calculate the average time_in_hospital
+    grouped_df = (chart_df.groupby('READMITTED')['LENGTH_OF_STAY'].mean().round(2)).reset_index()
+
+    # Create a grouped bar chart
+    fig = px.pie(grouped_df, values='LENGTH_OF_STAY', names='READMITTED',hole=0.5,
+                labels={'READMITTED': 'Readmission Type', 'LENGTH_OF_STAY': 'Avg Length of stay in Hospital (days)'}, width=600)
+
+    # fig = px.bar(grouped_df, x='READMITTED', y='LENGTH_OF_STAY', color='READMITTED',
+    #                         # category_orders={'NUMBER_INPATIENT': sorted(inpat_not_visited['NUMBER_INPATIENT'].unique())},
+    #                         labels={'READMITTED': 'Readmission Type', 'LENGTH_OF_STAY': 'Length of stay in Hospital (days)'}, width=600,
+    #                         text='LENGTH_OF_STAY', orientation='h')
+
     # Set transparent background
     fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
-    fig.update_traces(text=chart_df['TIME_IN_HOSPITAL'], textposition='auto')
+    # fig.update_traces(text=chart_df['LENGTH_OF_STAY'], textposition='auto')
     
     # Customize tick and label colors for x-axis and y-axis
-    fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
-                    titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
-    fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
-                    titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+    # fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+    #                 titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+    # fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+    #                 titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
     
     st.plotly_chart(fig)
  
@@ -279,7 +296,10 @@ with c1:
     
     # Count the occurrences of Readmission for each Diabetes type
     filter_option = ('All', 'Diabetic', 'Non-diabetic')
-    selected_dbm = st.selectbox("***Diabetic Status***", filter_option)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        selected_dbm = st.selectbox("***Diabetic Status***", filter_option)
     
     # Filter the DataFrame based on the selected option
     if selected_dbm == 'All':
@@ -312,17 +332,17 @@ with c2:
     # Heading
     st.markdown("<h5 style='color: #0068c9;'>Readmission Trends Across Diagnoses</h5>", unsafe_allow_html=True)
     # Count the occurrences of readmission status for each combination of Diag1 and Diag2
-    diag_readmission_count = chart_df.groupby(['DIAG_1', 'DIAG_2', 'READMITTED']).size().reset_index(name='count')
+    diag_readmission_count = chart_df.groupby(['Primary', 'Secondary', 'READMITTED']).size().reset_index(name='count')
  
     # Create a radio button
-    options_mapping = ['DIAG_1', 'DIAG_2']
+    options_mapping = ['Primary', 'Secondary']
     selected_ds = st.radio("***Diagnosis***", options_mapping)
  
-    if selected_ds == "DIAG_1":
+    if selected_ds == "Primary":
         # Create a bar chart
         fig = px.bar(diag_readmission_count, x=selected_ds, y='count', color='READMITTED',
-                        category_orders={'DIAG_1': sorted(chart_df['DIAG_1'].unique())},
-                        labels={'count': 'Count of Readmission by Diagnosis 1', 'DIAG_1': 'Diagnosis 1'},width=600)
+                        category_orders={'Primary': sorted(chart_df['Primary'].unique())},
+                        labels={'count': 'Count of Readmission by Primary', 'Primary': 'Primary Diagnosis'},width=600)
         
         # Customize tick and label colors for x-axis and y-axis
         fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
@@ -337,11 +357,11 @@ with c2:
         # Render the chart using Streamlit
         st.plotly_chart(fig)
        
-    elif selected_ds == "DIAG_2":
+    elif selected_ds == "Secondary":
         # Create a bar chart
         fig = px.bar(diag_readmission_count, x=selected_ds, y='count', color='READMITTED',
-                        category_orders={'DIAG_2': sorted(chart_df['DIAG_2'].unique())},
-                        labels={'count': 'Count of Readmission by Diagnosis 2', 'DIAG_2': 'Diagnosis 2'},
+                        category_orders={'Secondary': sorted(chart_df['Secondary'].unique())},
+                        labels={'count': 'Count of Readmission by Secondary', 'Secondary': 'Secondary Diagnosis'},
                         title='Readmission Trends Across Diagnoses')
  
         # Set transparent background
@@ -358,6 +378,257 @@ with c2:
         st.plotly_chart(fig)
 
 
+# Page Layout
+c1, c2 = st.columns(2)
+
+with c1:
+    
+    # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Analysis of Readmission Trends Across Over Inpatient Visits</h5>", unsafe_allow_html=True)
+        
+    # Count the occurrences of readmission status for Inpatient Visits
+    inpat_status = st.radio("**Inpatient Status:**", ['***Visited***', '***Not Visited***'])
+        
+    if inpat_status == '***Not Visited***':
+    
+        # Heading
+        st.markdown("<h6 style='color: #0068c9;'>Understanding Readmission Patterns for Patients without Inpatient History</h6>", unsafe_allow_html=True)
+        
+        inpat_not_visited = chart_df[chart_df['NUMBER_INPATIENT'] < 1]
+        inpat_readmission_count = inpat_not_visited.groupby(['NUMBER_INPATIENT', 'READMITTED']).size().reset_index(name='count')
+        
+        # fig = px.bar(chart_df, x='NUMBER_INPATIENT', y='READMITTED', title='Number of Inpatient Visits by Patient Number', color='NUMBER_INPATIENT'
+        #         #  labels={'NUMBER_INPATIENT': 'Number of Inpatient Visits', 'GENDER': 'Patient Number'}
+        #          )
+
+        # fig = px.bar(inpat_readmission_count, x='NUMBER_INPATIENT', y='count', color='READMITTED',
+        #                     category_orders={'NUMBER_INPATIENT': sorted(inpat_not_visited['NUMBER_INPATIENT'].unique())},
+        #                     labels={'count': 'Count of Inpatient Visit on Current Years', 'NUMBER_INPATIENT': 'No. of Inpatient Visits'},
+        #                      text='count')
+        
+        fig = px.pie(inpat_readmission_count, values='count', names='READMITTED',hole=0.5,
+                labels={'READMITTED': 'Readmission Type', 'count': 'Count of Inpatient Visit on Current Years'}, width=600)
+
+    
+        # Set transparent background
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+        
+        # Customize tick and label colors for x-axis and y-axis
+        fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                        titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+        fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                        titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+
+        # Set x-axis range
+        fig.update_xaxes(range=[0, 0]) 
+        
+        # Render the chart using Streamlit
+        st.plotly_chart(fig)
+    
+    elif inpat_status == '***Visited***':
+        
+        # Heading
+        st.markdown("<h6 style='color: #0068c9;'>Analyzing Readmission Trends For Previous Year's Inpatient Admission</h6>", unsafe_allow_html=True)
+
+        inpat_not_visited = chart_df[chart_df['NUMBER_INPATIENT'] >= 0]
+        inpat_readmission_count = inpat_not_visited.groupby(['NUMBER_INPATIENT', 'READMITTED']).size().reset_index(name='count')
+        
+        # fig = px.bar(chart_df, x='NUMBER_INPATIENT', y='READMITTED', title='Number of Inpatient Visits by Patient Number', color='NUMBER_INPATIENT'
+        #         #  labels={'NUMBER_INPATIENT': 'Number of Inpatient Visits', 'GENDER': 'Patient Number'}
+        #          )
+
+        # fig = px.bar(inpat_readmission_count, x='count', y='NUMBER_INPATIENT', color='READMITTED',
+        #                     category_orders={'NUMBER_INPATIENT': sorted(inpat_not_visited['NUMBER_INPATIENT'].unique())},
+        #                     labels={'count': 'Count of Inpatient Visit on Previous Years', 'NUMBER_INPATIENT': 'No. of Inpatient Visits'},
+        #                     text='count', orientation='h')
+
+        fig = px.pie(inpat_readmission_count, values='count', names='READMITTED',hole=0.5,
+                labels={'READMITTED': 'Readmission Type', 'count': 'Count of Inpatient Visit on Previous Years'}, width=600)
+
+
+        # Set transparent background
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+                
+        # Customize tick and label colors for x-axis and y-axis
+        fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                        titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+        fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                        titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+
+        # Set axis range
+        fig.update_yaxes(range=[1, 21]) 
+        fig.update_xaxes(range=[0, 9000]) 
+        
+        # Render the chart using Streamlit
+        st.plotly_chart(fig)
+        
+# with c2:
+#   # Heading
+#     st.markdown("<h5 style='color: #0068c9;'>Analysis of Readmission Trends Across Over Emergency Visits</h5>", unsafe_allow_html=True)
+        
+#     # Count the occurrences of readmission status for Inpatient Visits
+#     emg_status = st.radio("**Emergency Status**:", ['***Visited***', '***Not Visited***'])
+        
+#     if emg_status == '***Not Visited***':
+    
+#         # Heading
+#         st.markdown("<h6 style='color: #0068c9;'>Understanding Readmission Rates among Patients without Prior Emergency Visits</h6>", unsafe_allow_html=True)
+        
+#         emg_not_visited = chart_df[chart_df['NUMBER_EMERGENCY'] < 1]
+#         # st.write(emg_not_visited)
+#         emg_readmission_count = emg_not_visited.groupby(['NUMBER_EMERGENCY', 'READMITTED']).size().reset_index(name='count')
+#         # st.write(emg_readmission_sum)
+        
+#         # fig = px.bar(chart_df, x='NUMBER_INPATIENT', y='READMITTED', title='Number of Inpatient Visits by Patient Number', color='NUMBER_INPATIENT'
+#         #         #  labels={'NUMBER_INPATIENT': 'Number of Inpatient Visits', 'GENDER': 'Patient Number'}
+#         #          )
+
+#         # fig = px.bar(emg_readmission_sum, x='NUMBER_EMERGENCY', y='avg', color='READMITTED',
+#         #                     category_orders={'NUMBER_EMERGENCY': sorted(emg_not_visited['NUMBER_EMERGENCY'].unique())},
+#         #                     labels={'avg': 'Sum of Emergency Visit on the Current Year', 'NUMBER_EMERGENCY': 'No. of Emergency Visits'},
+#         #                      text='avg')
+        
+#         fig = px.pie(emg_readmission_count, values='count', names='READMITTED',hole=0.5,
+#                 labels={'READMITTED': 'Readmission Type', 'count': 'Count of Inpatient Visit on Current Years'}, width=600)
+
+    
+#         # Set transparent background
+#         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+        
+#         # Customize tick and label colors for x-axis and y-axis
+#         fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+#                         titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+#         fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+#                         titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+
+#         # Set x-axis range
+#         # fig.update_xaxes(range=[0, 0]) 
+        
+#         # Render the chart using Streamlit
+#         st.plotly_chart(fig)
+    
+#     elif emg_status == '***Visited***':
+        
+#         # Heading
+#         st.markdown("<h6 style='color: #0068c9;'>Analyzing Readmission Trends For Previous Year's Emergency Admissions</h6>", unsafe_allow_html=True)
+
+#         emg_not_visited = chart_df[chart_df['NUMBER_EMERGENCY'] >= 0]
+#         emg_readmission_count = emg_not_visited.groupby(['NUMBER_EMERGENCY', 'READMITTED']).size().reset_index(name='count')
+        
+#         # fig = px.bar(chart_df, x='NUMBER_INPATIENT', y='READMITTED', title='Number of Inpatient Visits by Patient Number', color='NUMBER_INPATIENT'
+#         #         #  labels={'NUMBER_INPATIENT': 'Number of Inpatient Visits', 'GENDER': 'Patient Number'}
+#         #          )
+
+#         # fig = px.bar(inpat_readmission_count, x='count', y='NUMBER_INPATIENT', color='READMITTED',
+#         #                     category_orders={'NUMBER_INPATIENT': sorted(inpat_not_visited['NUMBER_INPATIENT'].unique())},
+#         #                     labels={'count': 'Count of Inpatient Visit on Previous Years', 'NUMBER_INPATIENT': 'No. of Inpatient Visits'},
+#         #                     text='count', orientation='h')
+
+#         fig = px.pie(emg_readmission_count, values='count', names='READMITTED',hole=0.5,
+#                 labels={'READMITTED': 'Readmission Type', 'count': 'Count of Emergency Visits on Previous Years'}, width=600)
+
+
+#         # Set transparent background
+#         fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+                
+#         # Customize tick and label colors for x-axis and y-axis
+#         fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+#                         titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+#         fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+#                         titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+
+#         # Set axis range
+#         fig.update_yaxes(range=[1, 21]) 
+#         fig.update_xaxes(range=[0, 9000]) 
+        
+#         # Render the chart using Streamlit
+#         st.plotly_chart(fig)  
+    
+with c2:
+  # Heading
+    st.markdown("<h5 style='color: #0068c9;'>Analysis of Readmission Trends Across Over Emergency Visits</h5>", unsafe_allow_html=True)
+        
+    # Count the occurrences of readmission status for Inpatient Visits
+    emg_status = st.radio("**Emergency Status**:", ['***Visited***', '***Not Visited***'])
+        
+    if emg_status == '***Not Visited***':
+    
+        # Heading
+        st.markdown("<h6 style='color: #0068c9;'>Understanding Readmission Rates among Patients without Prior Emergency Visits</h6>", unsafe_allow_html=True)
+        
+        emg_not_visited = chart_df[chart_df['NUMBER_EMERGENCY'] < 1]
+        # st.write(emg_not_visited)
+        emg_readmission_count = emg_not_visited.groupby(['NUMBER_EMERGENCY', 'READMITTED']).size().reset_index(name='count')        
+
+        fig = px.treemap(emg_readmission_count, 
+                 path=['READMITTED', 'count'], 
+                 values='count',
+                #  custom_data=['customdata'],
+                 hover_data={'count': True},
+                 color='READMITTED', 
+                 color_continuous_scale='Viridis', width=600)
+
+        # Update layout
+        fig.update_layout(title='Sample Treemap Chart',
+                        treemapcolorway=['gold', 'mediumturquoise', 'darkorange', 'lightgreen'],
+                        margin=dict(t=50, l=25, r=25, b=25))
+    
+    
+    
+        # Set transparent background
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+        
+        # Customize tick and label colors for x-axis and y-axis
+        fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                        titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+        fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                        titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+
+        # Set x-axis range
+        # fig.update_xaxes(range=[0, 0]) 
+        
+        # Render the chart using Streamlit
+        st.plotly_chart(fig)
+    
+    elif emg_status == '***Visited***':
+        
+        # Heading
+        st.markdown("<h6 style='color: #0068c9;'>Analyzing Readmission Trends For Previous Year's Emergency Admissions</h6>", unsafe_allow_html=True)
+
+        emg_not_visited = chart_df[chart_df['NUMBER_EMERGENCY'] >= 0]
+        emg_readmission_count = emg_not_visited.groupby(['NUMBER_EMERGENCY', 'READMITTED']).size().reset_index(name='count')
+
+        fig = px.treemap(emg_readmission_count, 
+                 path=['READMITTED', 'count'], 
+                 values='count',
+                #  custom_data=['customdata'],
+                 hover_data={'count': True},
+                 color='READMITTED', 
+                 color_continuous_scale='Viridis', width=600)
+
+        # Update layout
+        fig.update_layout(
+            # title='Sample Treemap Chart',
+                        treemapcolorway=['gold', 'mediumturquoise', 'darkorange', 'lightgreen'],
+                        margin=dict(t=50, l=25, r=25, b=25))
+
+        # Set transparent background
+        fig.update_layout(plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)')
+                
+        # Customize tick and label colors for x-axis and y-axis
+        fig.update_xaxes(tickfont=dict(color='#5CA8F1'),  # Change x-axis tick color to blue
+                        titlefont=dict(color='#EF7B45'))  # Change x-axis label color to blue
+        fig.update_yaxes(tickfont=dict(color='#5CA8F1'),  # Change y-axis tick color to green
+                        titlefont=dict(color='#EF7B45'))  # Change y-axis label color to blue
+
+        # Set axis range
+        fig.update_yaxes(range=[1, 21]) 
+        fig.update_xaxes(range=[0, 9000]) 
+        
+        # Render the chart using Streamlit
+        st.plotly_chart(fig)  
+    
+    
 # st.header('Prediction on Hospital Readmission')
 st.markdown("<h2 style='color: #3d9df3;'>Prediction</h2>", unsafe_allow_html=True)
 
@@ -500,6 +771,21 @@ if uploaded_file is not None:
     with tablet[1]:
         y_pred = pd.DataFrame(y_pred)
         y_pred.rename(columns={0: 'READMITTED'}, inplace=True)
+        
+        # Function to rename gender category
+        def pred_readm_code_to_desc(code):
+            if code == 0:
+                return 'Not likely to be readmitted'
+            elif code == 1:
+                return 'Likely to be readmitted within 30 days'
+            elif code == 2:
+                return 'Likely to be readmitted after 30 days'
+            else:
+                return code
+            
+        # Apply the function to the Gender column
+        y_pred['READMITTED'] = y_pred['READMITTED'].apply(pred_readm_code_to_desc)
+
         a = pd.concat([upd_df['PATIENT_NBR'], y_pred], axis=1)
         # Save the concatenated DataFrame to BytesIO
         csv_file = BytesIO()
