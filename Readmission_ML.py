@@ -408,7 +408,7 @@ c1, c2 = st.columns(2)
 with c1:
     
     # Heading
-    st.markdown("<h5 style='color: #0068c9;'>Analysis of Readmission Across Inpatient Visits</h5>", unsafe_allow_html=True)
+    st.markdown("<h5 style='color: #0068c9;'>Analysis of Readmission Across Inpatient Visits For the Preceding Year</h5>", unsafe_allow_html=True)
         
     # Count the occurrences of readmission status for Inpatient Visits
     inpat_status = st.radio("**Inpatient Status:**", ['***Visited***', '***Not Visited***'])
@@ -570,7 +570,7 @@ with c1:
     
 with c2:
   # Heading
-    st.markdown("<h5 style='color: #0068c9;'>Analysis of Readmission Across Emergency Visits</h5>", unsafe_allow_html=True)
+    st.markdown("<h5 style='color: #0068c9;'>Analysis of Readmission Across Emergency Visits For the Preceding Year</h5>", unsafe_allow_html=True)
         
     # Count the occurrences of readmission status for Inpatient Visits
     emg_status = st.radio("**Emergency Status**:", ['***Visited***', '***Not Visited***'])
