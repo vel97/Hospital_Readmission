@@ -40,7 +40,7 @@ def add_bg_from_local(image_file):
     """,
     unsafe_allow_html=True
     )
-bg_img = add_bg_from_local('../src/img/Pharma2.png')
+bg_img = add_bg_from_local('Pharma2.png')
 
 # styles = f"""
 # 			<style>
