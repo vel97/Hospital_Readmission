@@ -9,14 +9,6 @@ from io import BytesIO
 # Title
 st.set_page_config(page_title="Hospital Re-Admission Analysis", layout="wide")
 
-# Define background image with base64 format
-# def get_img(file):
-# 	with open(file, "rb") as f:
-# 		img = f.read()
-# 	return base64.b64encode(img).decode()
-
-# bg_img = get_img("C:/Users/SriramvelM/Desktop/sklearn_vs/Pharma1.png")
-
 def add_bg_from_local(image_file):
     with open(image_file, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read())
